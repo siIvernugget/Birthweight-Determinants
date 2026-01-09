@@ -1,0 +1,431 @@
+\documentclass{article}
+\usepackage{graphicx} 
+\usepackage{amsmath}
+\usepackage{setspace}
+\usepackage{enumerate}
+\usepackage[margin=1.5in]{geometry}
+\usepackage{natbib}
+\bibliographystyle{apalike}
+\onehalfspacing
+
+\title{Econometrics 1: Case Study 2\\
+\large Determinants of Birth Weight}
+\author{Bischoy Bert}
+\date{November 2025}
+
+<<setup, include=FALSE>>=
+library(knitr)
+library(formatR)
+opts_chunk$set(
+  tidy = FALSE,
+  tidy.opts = list(width.cutoff = 50),
+  size = "small"
+)
+@
+
+
+
+\begin{document}
+
+\maketitle
+
+\section{Introduction}
+One of the most important health measures of newborn babies is their birth weight. Low birth weight,
+usually defined as weighing less than 2,500 grams, is associated with health and developmental
+issues of the baby. In this case study, we will analyze factors that influence birth weight using a
+subset of the data of Almond, Chay and Lee (2005) which contains a census of infant births and deaths. The data in \texttt{bw\_smoking.data} are for births in Pennsylvania in 1989. To conduct the analysis we will use \texttt{R} and aside from its base functions, the packages \texttt{tidyverse}, \texttt{readxl} and \texttt{patchwork} \citep{Almond2005}.
+
+\section{Data Acquisition}
+The raw dataset  \texttt{birthweight\_smoking.xlsx} contains information on birth weight, maternal age, education,
+weekly alcohol consumption, smoking behavior, prenatal medical visits and more. These variables allow us to examine possible influences on the birth weight of infants.
+
+The dataset used during this analysis shall be titled \texttt{bw\_smoking} and has been edited to contain only selected variables:
+<<include=FALSE>>=
+library(tidyverse)
+library(readxl)
+@
+
+<<message=FALSE, warning=FALSE>>=
+birthweight_smoking <- data.frame(readxl::read_xlsx("birthweight_smoking.xlsx"))
+
+bw_smoking <- birthweight_smoking |> 
+  select(birthweight, age, educ, drinks, smoker, tripre0)
+@
+
+The following variables were selected for the analysis:
+\begin{itemize}
+    \item \textbf{birthweight}: Infant birth weight in grams
+    \item \textbf{age}: Age of the mother in years
+    \item \textbf{educ}: Years of maternal education (values above 16 coded as 17)
+    \item \textbf{drinks}: Number of alcoholic drinks per week during pregnancy
+    \item \textbf{smoker}: Indicator variable (1 if mother smoked during pregnancy, 0 otherwise)
+    \item \textbf{tripre0}: Indicator variable (1 if no prenatal visits, 0 otherwise)
+\end{itemize}
+
+Now we shall consider the relationship between (i) \texttt{birthweight} and \texttt{smoker},\\(ii) \texttt{birthweight} and \texttt{tripre0}, (iii) \texttt{birthweight} and \texttt{age}. For each of those 3 pairs of variables shall answer the following two
+questions:
+\begin{enumerate}
+    \item Which relation can one expect between the variables?
+    \item Does the empirical correlation between the variables support our expectation?
+\end{enumerate}
+
+\noindent \title{1.}
+\begin{enumerate}[(i)]
+    \item We expect a negative relationship between the variables \texttt{smoker} and \texttt{birthweight}. Assuming that higher birth weight is indicative of better infant health, it naturally follows that a greater value for \texttt{smoker} (i.e. "1") would imply a lower birth weight and vice versa. According to a study published by the \textit{National Library of Medicine}, there is sufficient evidence to infer a causal link between active or passive maternal smoking and low birth weight or preterm delivery \citep{Delcroix2023}.
+
+    \item We expect a negative correlation between the variables \texttt{tripre0} and \texttt{birthweight}. Again, assuming that higher birth weight is indicative of better infant health, it naturally follows that a greater value for \texttt{tripre0} (i.e. "1"), in other words no prenatal visits, would imply a lower birth weight and vice versa. This could be due to undetected complications during pregnancy that could have been avoided had there been at least one prenatal visit. According to another study published by the \textit{National Library of Medicine}, analyses indicate that, around the world, the number of prenatal visits is significantly related to birth weight of the infant \citep{Donaldson1984}.
+
+    \item Assuming that lower age is generally associated with better overall health and lower risk for diseases and complications, we would expect a negative correlation between \texttt{age} and \texttt{birthweight}. A different study published by Wang and colleagues in the \textit{National Library of Medicine}, suggest that the relationship is nonlinear but also that the specific relationship between each additional year of maternal age and birth weight remains unclear \citep{Wang2020}. This result appears counterintuitive to what we expected.
+\end{enumerate}
+
+
+\noindent \title{2.}
+\\
+To answer this question, we will compute the empirical correlation between each pair of variables and compare the results to our expectations.
+
+<<message=FALSE, warning=FALSE>>=
+bw_smoking |> 
+  summarise(cor_smoker = cor(birthweight, smoker),
+            cor_tripre0 = cor(birthweight, tripre0),
+            cor_age = cor(birthweight, age))
+@
+
+The results match our expectations for the correlation between \texttt{birthweight}, and \texttt{smoker} and \texttt{tripre0}, respectively. The correlation between \texttt{birthweight} and \texttt{age} is slightly positive.
+
+\section{Plots}
+In this section we shall create two density plots to visualize the distribution of birth weights. One by maternal smoking status and the other by prenatal visit attendance.
+
+<<plot_bw_sm, message=FALSE, warning=FALSE, out.width="75%", fig.align="center", fig.cap="bw density for smokers vs non-smokers">>=
+bw_sm_plot <- bw_smoking |> 
+  ggplot() +
+  geom_density(aes(x = birthweight, fill = factor(smoker)), alpha = 0.25) +
+  scale_fill_manual(
+    name = "Smoker",
+    values = c("0" = "#619CFF", "1" = "#F8766D"),
+    labels = c("0 = Non-Smoker", "1 = Smoker")
+  ) +
+  labs(
+    x = "Birthweight",
+    y = "Density",
+    title = "Birthweight Density for Smokers vs Non-Smokers"
+  )
+
+bw_sm_plot
+@
+
+<<plot_bw_tripre0, message=FALSE, warning=FALSE, out.width="75%", fig.align="center", fig.cap="bw density for mothers with vs. without prenatal visits">>=
+bw_tripre0_plot <- bw_smoking |> 
+  ggplot() +
+  geom_density(aes(x = birthweight, fill = factor(tripre0)), alpha = 0.25) +
+  scale_fill_manual(
+    name = "Prenatal Visits",
+    values = c("0" = "#619CFF", "1" = "#F8766D"),
+    labels = c("0 = At least 1 Prenatal Visit", "1 = No Prenatal Visits")
+  ) +
+  labs(
+    x = "Birthweight",
+    y = "Density",
+    title = "Birth Weight Density for Mothers with vs. without Prenatal Visits"
+  )
+
+bw_tripre0_plot
+@
+
+Both figures align with our expectations: The curves for not smoking and attending at least one prenatal visit show a higher mean birth weight than those for smoking mothers or mothers with no prenatal visits, with a dramatically stronger effect for the latter.
+
+\section{Multiple Linear Regression}
+\subsection{First Part}
+By $Y$ we shall denote the variable \texttt{birthweight}, and by $X_1, X_2, X_3, X_4$ and $X_5$ the variables \texttt{age}, \texttt{educ}, \texttt{drinks}, \texttt{smoker}, and \texttt{tripre0}, respectively. Now we shall consider the following multiple linear regression model:
+
+$$Y = \beta_0 + \beta_1 X_1 + \beta_2 X_2 + \beta_3 X_3 + \beta_4 X_4 + \beta_5 X_5 + u, \quad {E}[u \mid \mathit{X}] = 0$$
+
+To create the multiple linear regression model, we use the base function \textit{lm()}. Let \texttt{model\_full} denote the linear model.
+
+<<>>=
+model_full <- lm(birthweight ~ age + educ + drinks + smoker + tripre0,
+                 data = bw_smoking)
+
+summary(model_full)
+@
+
+Given these coefficients, we shall try and answer the following questions:
+\begin{enumerate}
+    \item What would be the effect on the weight at birth of an increase of 2 years in the age of the
+mother?
+\item What is the effect on the weight at birth of smoking during pregnancy?
+\end{enumerate}
+\noindent
+\textbf{1.} Consider the estimated coefficient for \texttt{age}, which is $\hat{\beta}_1 = 3.634$. This represents the expected change in birthweight for a one-year increase in maternal age, holding all other variables constant. Therefore, a two-year increase in maternal age would increase the expected birthweight by
+
+$$2 \times 3.634 = 7.268 \text{ grams.}$$
+
+\textbf{2.} The estimated coefficient for \texttt{smoker} is $\hat{\beta}_4 = -216.465$. This indicates that, ceteris paribus, infants of mothers who smoked during pregnancy are expected to have a birthweight 216.465 grams lower than infants of non-smoking mothers.
+
+
+
+\subsection{Second Part}
+In this part we shall estimate the linear model without the variable \texttt{smoker} and compare it to our original model including \texttt{smoker}. We shall try and answer the following questions:
+\begin{enumerate}
+    \item Which of the two models explains more variability in the outcomes? We shall call this model \texttt{model+} from now on.
+    \item In \texttt{model+}, do our estimates align with the answers provided in question 1?
+    \item In \texttt{model+}, what is the effect on \texttt{birthweight} (in grams) of going to at least one prenatal visit?
+\end{enumerate}
+
+
+Let \texttt{model\_exsmoker} denote the linear model excluding \texttt{smoker}.
+
+<<>>=
+model_exsmoker <- lm(birthweight ~ age + educ + drinks + tripre0,
+                     data = bw_smoking)
+summary(model_full)
+summary(model_exsmoker)
+@
+
+\begin{enumerate}
+\item The model including \texttt{smoker} explains more variability as it contains a significant influence on \texttt{birthweight} (that of smoking vs not-smoking) which is not captured by the other variables. This is confirmed by our obtained $R^2$ value: \texttt{0.0467} for the model including \texttt{smoker} and \texttt{0.02696} for the model excluding \texttt{smoker}. This result should not be surprising, as \texttt{smoker} is a binary variable that directly captures a major behavioral difference affecting pregnancy health.
+\item Our estimates do align with our previous answer. See the reported $R^2$ and the fact that the estimates for the other variables are less significant in \texttt{model+} (\texttt{model\_full}).
+\item In \texttt{model+}, the effect on \texttt{birthweight} of attending at least one prenatal visit is \texttt{+654.6} grams.
+\end{enumerate}
+
+
+\subsection{Third Part}
+Based on the results of the estimation of \texttt{model+}, we shall recall the formula for an unbiased estimator of $\sigma^2$ and use this formula and the residuals of that regression to compute an unbiased estimator of the error variance.
+
+An unbiased estimator of the error variance $\sigma^2$ in a homoskedastic multiple regression model is given by:
+
+$$\hat{\sigma}^2 = \frac{SSR}{df}$$
+
+where
+
+$$SSR = \sum_{i=1}^{N} \hat{u}_i^2, \quad df = N - K - 1$$
+
+and $N$ is the number of observations, while $K$ is the number of predictors $X_1, \ldots, X_K$.
+
+<<>>=
+residuals_full <- residuals(model_full)
+
+SSR <- sum(residuals_full^2)
+
+N <- length(residuals_full)
+K <- length(coefficients(model_full))
+
+df <- N - K
+
+err_var_estimate <- SSR / df
+err_var_estimate
+@
+
+Or, we can compute the estimated variance error directly.
+
+<<>>=
+err_var_estimate_direct <- summary(model_full)$sigma^2
+err_var_estimate_direct
+@
+Note that \texttt{R} includes the intercept in the coefficient count, hence we do not need to subtract 1 when calculating the degrees of freedom.
+
+Now we shall \textbf{(1)} recall the formula for the variance-covariance matrix of the OLS estimator. Using this formula and the estimator of the error variance computed above, we shall \textbf{(2)} compute and show an estimator of the variance-covariance matrix of the OLS estimator. Then, we shall (3) determine the value of the covariance of the estimators of \texttt{educ} and \texttt{tripre0} and interpret the sign of this covariance.
+
+\begin{enumerate}[(1)]
+    \item 
+    The covariance of two OLS coefficient estimators $\hat{\beta}_j$ and $\hat{\beta}_k$ measures how strongly deviations between the estimator and the true value are correlated and is given by:
+    $$Cov(\hat{\beta}_j, \hat{\beta}_k) = E [ (\hat{\beta}_j - \beta_j)(\hat{\beta}_k - \beta_k) ]$$
+
+    This information is summarized for all possible pairs of coefficients in the covariance matrix of the OLS estimator:
+
+$$Cov(\hat{\boldsymbol{\beta}}) = E [ (\hat{\boldsymbol{\beta}} - \boldsymbol{\beta}) (\hat{\boldsymbol{\beta}} - \boldsymbol{\beta})^T ]$$
+
+\item We can compute the variance-covariance matrix of the OLS estimator manually:
+<<>>=
+X <- model.matrix(model_full)
+err_var_estimate <- summary(model_full)$sigma^2
+v_cov_matrix_manual <- err_var_estimate * solve(t(X) %*% X)
+v_cov_matrix_manual
+@
+
+
+Or directly:
+
+<<>>=
+v_cov_matrix_direct <- vcov(model_full)
+v_cov_matrix_direct
+@
+
+\item 
+We can determine the covariance of the estimators of \texttt{educ} and \texttt{tripre0} by looking at the covariance matrix. However, determining the covariance of a particular set of estimators from the covariance matrix can be cumbersome, especially for large matrices. Therefore, we use \texttt{R} to determine the covariance directly:
+<<>>=
+v_cov_matrix_direct["educ", "tripre0"]
+@
+
+The covariance between \texttt{educ} and \texttt{tripre0} is \texttt{19.59575}. The positive sign tells us that they are positively correlated. If one variable increases, the other tends to follow, and if one variable decreases, the other tends to decrease as well.
+\end{enumerate}
+
+\section{Hypothesis Testing and Prediction}
+To answer the questions in this section, we shall use the results of \texttt{model+} (\texttt{model\_full}).
+
+\begin{enumerate}
+\item Does the weekly number of drinks during pregnancy have a significant impact on the weight at birth?
+We shall define our null and alternative hypotheses:
+\begin{align*}
+H_0 &: \beta_3 = 0 \quad & \parbox[t]{0.6\textwidth}{The weekly number of drinks has no effect on birth weight} \\
+H_1 &: \beta_3 \neq 0 \quad & \parbox[t]{0.6\textwidth}{The weekly number of drinks does affect birth weight}
+\end{align*}
+
+Let the significance level $\alpha$ = 0.05
+
+Now we have two equivalent ways of testing the significance of \texttt{drinks}. (i) Using the test-statistic and an appropriate critical value. (ii) Using the p-value.
+    \begin{enumerate}[(i)]
+        \item To determine the t-statistic for our estimate for
+        \texttt{drinks}, we pull the information needed from our model coefficients. Let \texttt{t\_drinks} denote the t-statistic for the estimator \texttt{drinks}:
+<<>>=
+t_drinks <- summary(model_full)$coefficients["drinks", "t value"]
+        abs(t_drinks)
+@
+
+To find the suitable critical value for a two-sided $t$-test at significance level $\alpha = 5\%$, we use the $t$-distribution with the appropriate degrees of freedom and compare it to the absolute value of our t-statistic. Let \texttt{t\_critical} denote the critical value for our two-sided $t$-test:
+$$t_{\text{critical}} = t_{1 - \alpha/2, \, \text{df}}$$
+where \texttt{df} denotes the degrees of freedom of the regression residuals.
+
+<<>>=
+alpha <- 0.05
+t_critical <- qt(1 - alpha/2, df)
+t_critical
+@
+Note that the critical t-value is slightly larger than 1.96 because we are using a t-distribution with finite degrees of freedom. Compared to the standard normal distribution, the t-distribution has slightly heavier tails. For the same 5\% significance level, the critical value lies a bit further away from zero. As the degrees of freedom increase, the t-distribution approaches the standard normal distribution and the critical value converges to 1.96. 
+
+Since $|\texttt{t\_drinks}|$ is smaller than $\texttt{t\_critical}$, we conclude that \texttt{drinks} does not have a statistically significant effect on \texttt{birthweight} at the 5\% significance level.
+
+\item 
+By looking at the model coefficients, we do not necessarily need to compare the t-statistic to a critical value. We can determine the significance by looking at the p-value, denoted as \texttt{Pr>|t|} in our model Output:, the probability of observing our calculated t-statistic, assuming that the null hypothesis is true (i.e., the combined area under the curve, left and right of our observed t-value). Let \texttt{p\_drinks} denote the p-value for \texttt{drinks}:
+
+<<>>=
+p_drinks <- summary(model_full)$coefficients["drinks", "Pr(>|t|)"]
+p_drinks
+@
+
+The observed p-value of 0.40736 is greater than our significance level of 5\%, so we fail to reject the null hypothesis and conclude that the weekly number of drinks during pregnancy does not have a statistically significant impact on birth weight.
+    \end{enumerate}
+    
+    \item Do prenatal medical visits have an impact on the weight at birth? We define our null and alternative hypotheses as follows:
+\begin{align*}
+H_0 &: \beta_5 = 0 \quad & \parbox[t]{0.6\textwidth}{Attending at least one prenatal visit has no significant effect on birth weight} \\
+H_1 &: \beta_5 \neq 0 \quad & \parbox[t]{0.6\textwidth}{Attending at least one prenatal visit does affect the birth weight}
+\end{align*}
+
+Let the significance level $\alpha$ = 0.05
+
+    Again, we have two equivalent ways of testing the significance of \texttt{tripre0}. (i) Using the test-statistic and an appropriate critical value. (ii) Using the p-value.
+
+    \begin{enumerate}[(i)]
+        \item Let \texttt{t\_tripre0} denote the t-statistic for the estimator \texttt{tripre0}:
+<<>>=
+t_tripre0 <- summary(model_full)$coefficients["tripre0", "t value"]
+        abs(t_tripre0)
+@
+   
+        Since $|\texttt{t\_tripre0}|$ is larger than our previously calculated $\texttt{t\_critical}$, we conclude that \texttt{tripre0} does have a statistically significant effect on \texttt{birthweight} at the 5\% significance level.
+
+        \item Let \texttt{p\_tripre0} denote the p-value for \texttt{tripre0}:
+<<>>=
+p_tripre0 <- summary(model_full)$coefficients["tripre0", "Pr(>|t|)"]
+@
+
+        The observed p-value of $9.18 \times 10^{-10}$ is far smaller than our significance level of 5\%, so we reject the null hypothesis and conclude that attending at least one prenatal visit has a statistically significant impact on birth weight.
+        \end{enumerate}
+
+\end{enumerate}
+
+
+Now we shall use the estimates for the coefficients and the error variance from section 4 to manually compute the following test statistic for the parameter of the variable \texttt{tripre0}.
+
+$$t_5 = \frac{\hat{\beta}_5 - 1}{\mathrm{sd}(\hat{\beta}_5)}$$
+
+where $\hat{\beta}_5$ is the estimated coefficient for \texttt{tripre0} and $\mathrm{sd}(\hat{\beta}_5)$ is its standard error.
+
+Let t\_5 denote the manually computed test-statistic for \texttt{tripre0} using the estimates for the coefficients the error variance:
+
+<<>>=
+t_5 <- (summary(model_full)$coefficients["tripre0", "Estimate"] - 1) / 
+  (summary(model_full)$coefficients["tripre0", "Std. Error"])
+t_5
+@
+
+The computed test-statistic \texttt{t\_5} differs from our previously calculated \texttt{t\_tripre0} insofar as we are not testing whether the true parameter for \texttt{tripre0} is equal to 0, but whether or not it is equal to 1. In other words, our hypotheses would look like:
+
+\[
+\begin{aligned}
+H_0 &: \beta_5 = 1, \\
+H_1 &: \beta_5 \neq 1.
+\end{aligned}
+\]
+
+We therefore test whether the true coefficient for \texttt{tripre0} differs significantly from 1 rather than from 0.
+
+Since the error variance is estimated from the sample, the test statistic follows a student-$t$-distribution with residual degrees of freedom $(n - k)$, where $n$ is the sample size and $k$ the number of estimated coefficients (including the intercept).
+
+
+Now, we shall compute the p-value for a significance level of $\alpha$ = 0.05 using said distribution and interpret the results.
+
+Let \texttt{p\_t\_5} denote the p-value for \texttt{t\_5}, which represents the probability of observing a test statistic at least as extreme as \texttt{t\_5} under the null hypothesis $H_0: \beta_5 = 1$.
+
+<<>>=
+p_t_5 <- 2 * pt(t_5, model_full$df.residual)
+@
+
+
+The observed p-value of approximately $8.66 \times 10^{-10}$ is far smaller than our significance level of $\alpha = 0.05$, so we reject the null hypothesis $H_0: \beta_5 = 1$. This indicates that the true coefficient for \texttt{tripre0} is significantly different from 1.
+
+If we were testing against the usual null $H_0: \beta_5 = 0$, the corresponding p-value (from \texttt{t\_tripre0}) would also be extremely small, so we would similarly conclude that \texttt{tripre0} has a statistically significant effect on birth weight. The difference is that here we specifically test whether the effect equals 1 rather than 0.
+\\
+\\
+
+We can use our estimated model, \texttt{model\_full}, to predict the expected birth weight for a given set of values of the predictor variables. This is done by creating a new data frame with the chosen values and applying the \texttt{predict()} function in \texttt{R}.
+\\
+\\
+Example 1
+<<>>=
+newdata_1 <- data.frame(
+  age = 40,
+  educ = 18,
+  drinks = 0,
+  smoker = 0,
+  tripre0 = 0
+)
+example_model_1 <- predict(model_full, newdata = newdata_1)
+example_model_1
+@
+
+\noindent Example 2
+<<>>=
+newdata_2 <- data.frame(
+  age = 25,
+  educ = 0,
+  drinks = 6,
+  smoker = 1,
+  tripre0 = 1
+)
+example_model_2 <- predict(model_full, newdata = newdata_2)
+example_model_2
+@
+
+These predictions indicate that, according to our model, the first mother is expected to have a birth weight of approximately 3550 grams, while the second mother is expected to have a lower birth weight of approximately 2299 grams. This shows the combined effects of age, education, alcohol consumption, smoking, and prenatal visits on birth weight as estimated by our model, \texttt{model\_full}.
+
+\newpage
+\bibliography{sources}
+
+\end{document}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
