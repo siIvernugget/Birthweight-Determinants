@@ -5,6 +5,7 @@ This repository contains an econometric analysis, as part of a university projec
 * **`birthweight.Rnw`**: The main source file. Contains LaTeX code for the report and R code for the analysis (Knits to PDF).
 * **`sources.bib`**: The bibliography file containing references in BibTeX format.
 * **`birthweight_smoking.xlsx`**: The raw dataset used for the analysis.
+* **`Task Description.pdf`**: Task Description.
 * **`birthweight.pdf`**: The final compiled report.
 
 ## Prerequisites
